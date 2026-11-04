@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Optional;
 
-@CrossOrigin(origins = "*") // <-- LIBERA O ACESSO PARA O FRONT-END HTML
+@CrossOrigin(origins = "*")
 @RestController
 @RequestMapping("/carro")
 public class CarroController {

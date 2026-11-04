@@ -12,7 +12,6 @@ public class Carro {
     int ano;
     double preco;
 
-    // No-arg constructor necessário para desserialização (Jackson)
     public Carro() {
     }
 

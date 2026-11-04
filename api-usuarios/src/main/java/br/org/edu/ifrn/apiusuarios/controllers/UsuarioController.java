@@ -23,7 +23,7 @@ public class UsuarioController {
     public ResponseEntity<?> cadastrar(
             @RequestBody Usuario usuario,
             @RequestHeader("Cargo-Usuario-Logado") Cargo cargoLogado,
-            @RequestHeader("Id-Usuario-Logado") Long idLogado) { // Novo Cabeçalho
+            @RequestHeader("Id-Usuario-Logado") Long idLogado) {
         try {
             Usuario salvo = service.salvar(usuario, cargoLogado, idLogado);
             return ResponseEntity.status(HttpStatus.CREATED).body(salvo);
@@ -50,7 +50,7 @@ public class UsuarioController {
     public ResponseEntity<?> deletar(
             @PathVariable Long id,
             @RequestHeader("Cargo-Usuario-Logado") Cargo cargoLogado,
-            @RequestHeader("Id-Usuario-Logado") Long idLogado) { // Novo Cabeçalho
+            @RequestHeader("Id-Usuario-Logado") Long idLogado) {
         try {
             service.deletar(id, cargoLogado, idLogado);
             return ResponseEntity.noContent().build();

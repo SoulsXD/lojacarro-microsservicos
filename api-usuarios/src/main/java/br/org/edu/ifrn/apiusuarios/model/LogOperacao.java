@@ -1,4 +1,4 @@
-package br.org.edu.ifrn.LojaCarro.model;
+package br.org.edu.ifrn.apiusuarios.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
@@ -14,7 +14,7 @@ public class LogOperacao {
     @Column(name = "id_usuario", nullable = false)
     private Long idUsuario;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 1500)
     private String nome;
 
     @Column(name = "timestamp_data", nullable = false)

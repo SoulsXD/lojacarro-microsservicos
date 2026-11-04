@@ -44,6 +44,12 @@
         <button onclick="sair()">Sair</button>
     </div>
 
+    <div id="secaoPainelAdm" class="escondido">
+        <h2 class="secao-titulo">Painel de Auditoria (ADM)</h2>
+        <button onclick="carregarLogs()" style="background-color: #343a40; margin-bottom: 15px;">Consultar Logs do Sistema</button>
+        <ul id="listaLogs"></ul>
+    </div>
+
     <div id="secaoUsuarios">
         <h2 class="secao-titulo">Gestão de Utilizadores</h2>
         <fieldset>
@@ -67,6 +73,16 @@
 
     <div id="secaoCarros">
         <h2 class="secao-titulo">Catálogo de Carros</h2>
+        
+        <fieldset>
+            <legend>Registar Novo Carro</legend>
+            <form id="formCadastroCarro">
+                <input type="text" id="modeloCarro" placeholder="Modelo do Carro" required>
+                <input type="number" step="0.01" id="precoCarro" placeholder="Preço (R$)" required>
+                <button type="submit">Salvar Carro e Gerar Log</button>
+            </form>
+        </fieldset>
+
         <button onclick="carregarCarros()" style="background-color: #17a2b8; margin-bottom: 15px;">Atualizar Catálogo</button>
         <ul id="listaCarros"></ul>
     </div>
@@ -75,7 +91,8 @@
 
 <script>
     const API_USUARIOS = 'http://localhost:8081/usuarios';
-    const API_CARROS = 'http://localhost:8080/carro'; 
+    const API_CARROS = 'http://localhost:8080/carro';
+    const API_LOGS = 'http://localhost:8081/logs'; 
     
     let sessaoAtual = null;
 
@@ -118,6 +135,12 @@
                     carregarUsuarios(); 
                 }
 
+                if (sessaoAtual.cargo === 'ADMINISTRADOR') {
+                    document.getElementById('secaoPainelAdm').classList.remove('escondido');
+                } else {
+                    document.getElementById('secaoPainelAdm').classList.add('escondido');
+                }
+
                 carregarCarros();
             } else {
                 const erro = await resposta.text();
@@ -133,8 +156,11 @@
         document.getElementById('formLogin').reset();
         document.getElementById('telaSistema').classList.add('escondido');
         document.getElementById('telaLogin').classList.remove('escondido');
+        
         document.getElementById('listaUsuarios').innerHTML = '';
         document.getElementById('listaCarros').innerHTML = '';
+        document.getElementById('listaLogs').innerHTML = '';
+        document.getElementById('secaoPainelAdm').classList.add('escondido');
     }
 
     async function carregarUsuarios() {
@@ -172,12 +198,38 @@
                 carros.forEach(carro => {
                     const li = document.createElement('li');
                     const detalhes = `${carro.modelo} - Ano: ${carro.ano} - R$ ${carro.preco}`;
-                    li.innerHTML = `<span><strong>ID ${carro.id}:</strong> ${detalhes}</span>`;
+                    
+                    let botaoExcluir = '';
+                    if (sessaoAtual.cargo === 'VENDEDOR' || sessaoAtual.cargo === 'ADMINISTRADOR') {
+                        botaoExcluir = `<button class="btn-delete" onclick="deletarCarro(${carro.id})">Excluir</button>`;
+                    }
+
+                    li.innerHTML = `<span><strong>ID ${carro.id}:</strong> ${detalhes}</span> ${botaoExcluir}`;
                     lista.appendChild(li);
                 });
             }
         } catch (error) {
             console.error('Falha na ligação com a API de Carros (8080).');
+        }
+    }
+
+    async function carregarLogs() {
+        try {
+            const resposta = await fetch(API_LOGS, { headers: getHeaders() });
+            if (resposta.ok) {
+                const logs = await resposta.json();
+                const lista = document.getElementById('listaLogs');
+                lista.innerHTML = '';
+                logs.forEach(log => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<span><strong>ID ${log.id}:</strong> ${log.nome} <br><small>Data: ${log.timestampData}</small></span>`;
+                    lista.appendChild(li);
+                });
+            } else {
+                alert('Acesso negado: Apenas administradores podem visualizar os logs.');
+            }
+        } catch (error) {
+            console.error('Erro ao buscar logs:', error);
         }
     }
 
@@ -206,6 +258,55 @@
             alert('Ação Negada:\n' + mensagemErro);
         }
     });
+
+    document.getElementById('formCadastroCarro').addEventListener('submit', async function(event) {
+        event.preventDefault();
+
+        const novoCarro = {
+            modelo: document.getElementById('modeloCarro').value,
+            preco: parseFloat(document.getElementById('precoCarro').value)
+        };
+
+        try {
+            const resposta = await fetch(`${API_CARROS}/salvar`, {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify(novoCarro)
+            });
+
+            if (resposta.ok) {
+                alert('Carro salvo com sucesso! O Log foi enviado para o RabbitMQ.');
+                document.getElementById('formCadastroCarro').reset();
+                carregarCarros(); 
+            } else {
+                const erro = await resposta.text();
+                alert('Erro ao salvar carro: ' + erro);
+            }
+        } catch (error) {
+            alert('Falha na ligação com a API de Carros (8080).');
+        }
+    });
+
+    async function deletarCarro(id) {
+        if (!confirm(`Tem a certeza que deseja excluir o carro ID ${id}?`)) return;
+
+        try {
+            const resposta = await fetch(`${API_CARROS}/${id}`, {
+                method: 'DELETE',
+                headers: getHeaders()
+            });
+
+            if (resposta.ok) {
+                alert('Carro excluído com sucesso.');
+                carregarCarros();
+            } else {
+                const mensagemErro = await resposta.text();
+                alert('Ação Negada:\n' + mensagemErro);
+            }
+        } catch (error) {
+            alert('Falha na ligação com a API de Carros (8080).');
+        }
+    }
 
     async function deletarUsuario(id) {
         if (!confirm('Tem a certeza que deseja excluir o utilizador ID ' + id + '?')) return;
